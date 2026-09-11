@@ -1,2 +1,5 @@
-   streamlit
-   pandas
+streamlit
+requests
+pandas
+plotly
+pytz
