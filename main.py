@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 # 페이지 기본 설정
 st.set_page_config(
@@ -90,13 +91,9 @@ fig_line = px.line(
     labels={"기준일자": "날짜", "해당일관객수": "관객수(명)"}
 )
 
-# 마우스 호버 설정
 fig_line.update_layout(hovermode="x unified")
-
-# 스트림릿에 그래프 출력
 st.plotly_chart(fig_line, use_container_width=True)
 
-# '이 그래프로 알 수 있는 것' 문구 영역
 st.info(
     f"💡 **이 그래프로 알 수 있는 것:** "
     f"개봉 이후 요일별(주말 스파이크 등) 관객 유입 패턴과 흥행 화력의 감소 추세를 한눈에 파악할 수 있습니다."
@@ -109,7 +106,6 @@ st.divider()
 # -------------------------------------------------------------
 st.subheader("2. 누적 관객수 추이 (영역 차트)")
 
-# Plotly 영역 차트(Area Chart) 생성
 fig_area = px.area(
     filtered_df,
     x="기준일자",
@@ -118,13 +114,9 @@ fig_area = px.area(
     labels={"기준일자": "날짜", "누적관객수": "누적 관객수(명)"}
 )
 
-# 마우스 호버 설정
 fig_area.update_layout(hovermode="x unified")
-
-# 스트림릿에 그래프 출력
 st.plotly_chart(fig_area, use_container_width=True)
 
-# '이 그래프로 알 수 있는 것' 문구 영역
 st.info(
     f"💡 **이 그래프로 알 수 있는 것:** "
     f"시간 경과에 따라 전체 관객수가 누적되는 증가율(완만해지는 시점)과 최종 도달 규모를 시각적으로 직관적이게 확인할 수 있습니다."
@@ -137,13 +129,9 @@ st.divider()
 # -------------------------------------------------------------
 st.subheader("3. 20일 이상 차트인 영화 중 흥행 TOP 5 누적 관객수 비교")
 
-# 1) 영화별 TOP 10 진입 일수 계산 (해당 데이터셋은 일별 박스오피스 기록이므로 행 개수 = 차트인 일수)
 chart_in_days = df["영화명"].value_counts()
-
-# 2) 20일 이상 차트인한 영화 목록 선별
 movies_over_20days = chart_in_days[chart_in_days >= 20].index
 
-# 3) 20일 이상 유지된 영화들 중 최대 누적관객수 기준 상위 5개 추출
 top5_long_run_movies = (
     df[df["영화명"].isin(movies_over_20days)]
     .groupby("영화명")["누적관객수"]
@@ -153,10 +141,8 @@ top5_long_run_movies = (
     .index.tolist()
 )
 
-# 4) 선별된 5개 영화 데이터 필터링
 top5_long_run_df = df[df["영화명"].isin(top5_long_run_movies)]
 
-# 5) Plotly 다중 선 그래프 생성 (color="영화명"으로 개별 색상 및 범례 적용)
 fig_multi_line = px.line(
     top5_long_run_df,
     x="기준일자",
@@ -167,7 +153,6 @@ fig_multi_line = px.line(
     markers=False
 )
 
-# 마우스 호버 및 범례 상단 가로 배치
 fig_multi_line.update_layout(
     hovermode="x unified",
     legend=dict(
@@ -180,12 +165,80 @@ fig_multi_line.update_layout(
     )
 )
 
-# 스트림릿에 그래프 출력
 st.plotly_chart(fig_multi_line, use_container_width=True)
 
-# '이 그래프로 알 수 있는 것' 문구 영역
 st.info(
     "💡 **이 그래프로 알 수 있는 것:** "
     "단기 반짝 흥행작(20일 미만)을 제외하고, 최소 20일 이상 차트 순위를 유지하며 "
     "안정적인 롱런(Long-run) 흥행을 이어간 대표작 5편의 누적 스코어 증가 속도와 최종 규모를 객관적으로 비교할 수 있습니다."
+)
+
+st.divider()
+
+# -------------------------------------------------------------
+# [섹션 4] 전체 박스오피스 총 관객수 및 7일 이동평균선
+# -------------------------------------------------------------
+st.subheader("4. 전체 박스오피스 일일 총관객수 및 7일 이동평균선")
+
+# 1) 기준일자별 TOP 10 영화의 일일 총관객수 합계 계산
+daily_total_df = (
+    df.groupby("기준일자")["해당일관객수"]
+    .sum()
+    .reset_index()
+    .rename(columns={"해당일관객수": "일일총관객수"})
+)
+
+# 2) 7일 이동평균 계산 (min_periods=1로 초반 결측치 방지)
+daily_total_df["7일이동평균"] = daily_total_df["일일총관객수"].rolling(window=7, min_periods=1).mean()
+
+# 3) Plotly graph_objects로 원본 선(연하게)과 이동평균선(진하게) 겹쳐 그리기
+fig_ma = go.Figure()
+
+# 원본 일일 총관객수 (연한 회색/하늘색 계열, 얇은 선)
+fig_ma.add_trace(
+    go.Scatter(
+        x=daily_total_df["기준일자"],
+        y=daily_total_df["일일총관객수"],
+        mode="lines",
+        name="일일 총관객수 (원본)",
+        line=dict(color="rgba(150, 165, 180, 0.4)", width=1.5),
+        hovertemplate="날짜: %{x|%Y-%m-%d}<br>일일 총관객수: %{y:,.0f}명<extra></extra>"
+    )
+)
+
+# 7일 이동평균선 (진한 파란색 계열, 굵은 선)
+fig_ma.add_trace(
+    go.Scatter(
+        x=daily_total_df["기준일자"],
+        y=daily_total_df["7일이동평균"],
+        mode="lines",
+        name="7일 이동평균",
+        line=dict(color="#1f77b4", width=3),
+        hovertemplate="날짜: %{x|%Y-%m-%d}<br>7일 이동평균: %{y:,.0f}명<extra></extra>"
+    )
+)
+
+# 레이아웃 설정
+fig_ma.update_layout(
+    title="기준일자별 박스오피스 총관객수 및 7일 이동평균 추세",
+    xaxis_title="날짜",
+    yaxis_title="관객수(명)",
+    hovermode="x unified",
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    )
+)
+
+# 스트림릿에 차트 출력
+st.plotly_chart(fig_ma, use_container_width=True)
+
+# '이 그래프로 알 수 있는 것' 문구 영역
+st.info(
+    "💡 **이 그래프로 알 수 있는 것:** "
+    "주말마다 치솟고 평일에 급감하는 요일별 노이즈(진폭)를 7일 이동평균선으로 부드럽게 정제하여, "
+    "극장가 전체의 성수기·비수기 사이클과 장기적인 영화 관람 수요 흐름을 뚜렷하게 확인할 수 있습니다."
 )
