@@ -84,7 +84,7 @@ def fetch_single_day_box_office(api_key, target_date_str):
 
 @st.cache_data(ttl=3600)
 def load_range_box_office_data(api_key, start_dt, end_dt):
-    """지정한 전체 기간 동안의 데이터를 수집하여 하나의 DataFrame으로 수집합니다."""
+    """지정한 전체 기간 동안의 데이터를 수집하여 하나의 DataFrame으로 통합합니다."""
     all_records = []
     current_dt = start_dt
 
@@ -195,11 +195,13 @@ latest_df = df_all[df_all["targetDt"] == latest_dt_str].sort_values("rank")
 # 7. 대시보드 구성 (1번 ~ 5번 전체 포함)
 # ==========================================
 
-# --- [1번] 1위 영화 지표 카드 세 장 ---
+# ------------------------------------------
+# 🥇 [1번] 1위 영화 지표 카드 세 장
+# ------------------------------------------
 if not latest_df.empty:
     top_1 = latest_df.iloc[0]
 
-    st.markdown(f"### 🏆 {latest_dt_str} 기준 박스오피스 1위")
+    st.markdown(f"### 🏆 1번: {latest_dt_str} 기준 박스오피스 1위")
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -211,7 +213,9 @@ if not latest_df.empty:
 
     st.divider()
 
-    # --- [2번] 관객수 상위 5편 막대그래프 ---
+    # ------------------------------------------
+    # 📊 [2번] 관객수 상위 5편 막대그래프
+    # ------------------------------------------
     st.markdown(f"### 📊 2번: {latest_dt_str} 기준 관객수 상위 5개 영화")
     top_5_df = latest_df.head(5).sort_values(by="rank", ascending=False)
 
@@ -237,7 +241,9 @@ if not latest_df.empty:
 
     st.divider()
 
-    # --- [3번] 전체 박스오피스 순위 표 ---
+    # ------------------------------------------
+    # 📋 [3번] 전체 박스오피스 순위 표
+    # ------------------------------------------
     st.markdown(f"### 📋 3번: {latest_dt_str} 전체 박스오피스 순위 표")
     display_df = latest_df[
         [
@@ -275,7 +281,9 @@ if not latest_df.empty:
 
     st.divider()
 
-# --- [4번] 기준일자별 전체 관객수 합계 추이 그래프 ---
+# ------------------------------------------
+# 📈 [4번] 기준일자별 전체 관객수 합계 추이 그래프
+# ------------------------------------------
 st.markdown("### 📈 4번: 기준일자별 전체 관객수 합계 추이")
 
 daily_summary = (
@@ -297,7 +305,9 @@ st.plotly_chart(fig4, use_container_width=True)
 
 st.divider()
 
-# --- [5번] 월별(연-월) 전체 관객수 합계 막대그래프 ---
+# ------------------------------------------
+# 📊 [5번] 월별(연-월) 전체 관객수 합계 막대그래프
+# ------------------------------------------
 st.markdown("### 📊 5번: 월별(연-월) 전체 관객수 합계")
 
 daily_summary["연월"] = daily_summary["기준일자"].dt.strftime("%Y-%m")
