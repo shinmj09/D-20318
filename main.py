@@ -16,7 +16,7 @@ st.set_page_config(
 
 st.title("🎬 박스오피스 종합 분석 대시보드")
 st.caption(
-    "KOBIS API를 활용하여 일별 순위, 관객수 추이, 월별 관객수 합계, 캘린더 히트맵을 분석합니다."
+    "KOBIS API를 활용하여 일별 순위, 영역 차트, 다중 선그래프, 관객수 추이(이동평균 포함), 월별 관객수, 캘린더 히트맵을 분석합니다."
 )
 
 
@@ -188,14 +188,14 @@ df_all["movieNm_display"] = df_all.apply(
     axis=1,
 )
 
-# 1, 2, 3번에 보여줄 일별 특정 날짜 선택 (사이드바)
+# 1번, 2번에 보여줄 일별 특정 날짜 선택 (사이드바)
 st.sidebar.markdown("---")
 st.sidebar.subheader("📅 일별 박스오피스 상세 날짜 선택")
 
 available_dates = sorted(df_all["targetDt"].unique(), reverse=True)
 
 selected_dt_str = st.sidebar.selectbox(
-    label="1, 2, 3번 항목에서 확인할 날짜를 고르세요",
+    label="1, 2번 항목에서 확인할 날짜를 고르세요",
     options=available_dates,
     index=0,
 )
@@ -226,77 +226,99 @@ if not selected_day_df.empty:
     st.divider()
 
     # ------------------------------------------
-    # 📊 [2번] 선택 날짜의 관객수 상위 5편 막대그래프
+    # ⛰️ [2번] 선택일 상위 영화 누적관객수 영역 차트
     # ------------------------------------------
-    st.markdown(f"### 📊 2번: {selected_dt_str} 기준 관객수 상위 5개 영화")
-    top_5_df = selected_day_df.head(5).sort_values(by="rank", ascending=False)
+    st.markdown(f"### ⛰️ 2번: {selected_dt_str} 기준 상위 영화의 누적관객수 변화 (영역 차트)")
+    
+    top_5_movies = selected_day_df.head(5)["movieNm"].tolist()
+    area_df = df_all[df_all["movieNm"].isin(top_5_movies)].copy()
+    area_df["dt"] = pd.to_datetime(area_df["targetDt"])
+    area_df = area_df.sort_values("dt")
 
-    fig2 = px.bar(
-        top_5_df,
-        x="audiCnt",
-        y="movieNm_display",
-        orientation="h",
-        text="audiCnt",
-        labels={"audiCnt": "당일 관객수 (명)", "movieNm_display": "영화명"},
-        color="audiCnt",
-        color_continuous_scale="Blues",
+    fig2 = px.area(
+        area_df,
+        x="dt",
+        y="audiAcc",
+        color="movieNm_display",
+        labels={
+            "dt": "기준일자",
+            "audiAcc": "누적관객수 (명)",
+            "movieNm_display": "영화명",
+        },
+        title=f"선택일({selected_dt_str}) 상위 5개 영화의 누적관객수 성장 추이",
     )
-    fig2.update_traces(texttemplate="%{text:,}명", textposition="outside")
+    
+    fig2.update_traces(hovertemplate="날짜: %{x|%Y-%m-%d}<br>누적관객수: %{y:,}명")
     fig2.update_layout(
-        showlegend=False,
-        height=350,
-        xaxis_title="관객수 (명)",
-        yaxis_title="",
-        coloraxis_showscale=False,
+        height=400,
+        xaxis_title="기준일자",
+        yaxis_title="누적관객수 (명)",
+        legend_title="영화명",
     )
+    
     st.plotly_chart(fig2, use_container_width=True)
 
-    st.divider()
-
-    # ------------------------------------------
-    # 📋 [3번] 선택 날짜의 전체 박스오피스 순위 표
-    # ------------------------------------------
-    st.markdown(f"### 📋 3번: {selected_dt_str} 전체 박스오피스 순위 표")
-    display_df = selected_day_df[
-        [
-            "rank",
-            "순위증감",
-            "movieNm_display",
-            "openDt",
-            "audiCnt",
-            "audiAcc",
-            "scrnCnt",
-        ]
-    ].copy()
-
-    display_df.columns = [
-        "순위",
-        "전날 대비",
-        "영화명",
-        "개봉일",
-        "당일 관객수",
-        "누적 관객수",
-        "스크린수",
-    ]
-
-    st.dataframe(
-        display_df,
-        hide_index=True,
-        use_container_width=True,
-        column_config={
-            "순위": st.column_config.NumberColumn(format="%d위"),
-            "당일 관객수": st.column_config.NumberColumn(format="%d명"),
-            "누적 관객수": st.column_config.NumberColumn(format="%d명"),
-            "스크린수": st.column_config.NumberColumn(format="%d개"),
-        },
-    )
+    st.info("💡 **이 그래프로 알 수 있는 것**")
+    with st.expander("📌 누적관객수 영역 차트 분석 가이드 보기", expanded=False):
+        st.markdown("""
+        1. **흥행 기울기(성장 속도):** 영역의 경사가 완만할 때는 관객 유입이 줄어든 상태이며, 경사가 가파를수록 흥행 속도가 빠른 구간입니다.
+        2. **흥행 꺾임(입소문/롱런 여부):** 개봉 후 누적관객 그래프가 꺾이지 않고 꾸준히 대각선으로 상승하는지 파악하여 장기 흥행 여부를 분석할 수 있습니다.
+        3. **상위 영화 간 성과 비교:** 선택한 날짜의 주요 상위권 영화들이 시간의 흐름에 따라 어떠한 격차로 누적 관객을 모았는지 상대적으로 비교 가능합니다.
+        """)
 
     st.divider()
 
 # ------------------------------------------
-# 📈 [4번] 전체 기간 기준일자별 관객수 합계 추이
+# 📈 [3번] 누적관객수 상위 5개 영화 다중 선그래프
 # ------------------------------------------
-st.markdown("### 📈 4번: 기준일자별 전체 관객수 합계 추이")
+st.markdown("### 📈 3번: 누적관객수 최고 상위 5개 영화의 일별 누적관객수 변화 (다중 선그래프)")
+
+top_5_acc_movies = (
+    df_all.groupby("movieNm")["audiAcc"].max().nlargest(5).index.tolist()
+)
+
+line_df = df_all[df_all["movieNm"].isin(top_5_acc_movies)].copy()
+line_df["dt"] = pd.to_datetime(line_df["targetDt"])
+line_df = line_df.sort_values("dt")
+
+fig3 = px.line(
+    line_df,
+    x="dt",
+    y="audiAcc",
+    color="movieNm_display",
+    markers=True,
+    labels={
+        "dt": "기준일자",
+        "audiAcc": "누적관객수 (명)",
+        "movieNm_display": "영화명",
+    },
+    title=f"전체 조회 기간 최고 누적관객수 TOP 5 영화 추이 ({start_date} ~ {end_date})",
+)
+
+fig3.update_traces(hovertemplate="날짜: %{x|%Y-%m-%d}<br>누적관객수: %{y:,}명")
+fig3.update_layout(
+    height=420,
+    xaxis_title="기준일자",
+    yaxis_title="누적관객수 (명)",
+    legend_title="영화명",
+)
+
+st.plotly_chart(fig3, use_container_width=True)
+
+st.info("💡 **이 그래프로 알 수 있는 것**")
+with st.expander("📌 누적관객수 다중 선그래프 분석 가이드 보기", expanded=False):
+    st.markdown("""
+    1. **흥행 1위 다툼 및 역전 구간:** 상위 영화들 간의 누적 관객수 추세를 비교하여 어느 시점에 순위가 뒤바뀌었는지 파악할 수 있습니다.
+    2. **관객 유입 지속성(롱런 여부):** 개봉 후 시간이 지나도 그래프 기울기가 지속적으로 완만하게라도 상승하면 장기 흥행에 성공했음을 의미합니다.
+    3. **최종 흥행 규모 비교:** 수집된 전체 기간 동안 가장 높은 누적 관객을 모은 영화들의 최종 관객수 차이와 격차를 한눈에 볼 수 있습니다.
+    """)
+
+st.divider()
+
+# ------------------------------------------
+# 📈 [4번] 전체 기간 기준일자별 관객수 합계 추이 (7일 이동 평균선 포함)
+# ------------------------------------------
+st.markdown("### 📈 4번: 기준일자별 전체 관객수 합계 추이 및 7일 이동 평균")
 
 daily_summary = (
     df_all.groupby("targetDt")["audiCnt"].sum().reset_index()
@@ -304,15 +326,33 @@ daily_summary = (
 daily_summary.columns = ["기준일자", "일별전체관객수"]
 daily_summary["dt"] = pd.to_datetime(daily_summary["기준일자"])
 
+# 7일 이동 평균 계산 (최근 7일 간의 평균 관객수)
+daily_summary["7일 이동 평균"] = (
+    daily_summary["일별전체관객수"].rolling(window=7, min_periods=1).mean()
+)
+
 fig4 = px.line(
     daily_summary,
     x="dt",
-    y="일별전체관객수",
+    y=["일별전체관객수", "7일 이동 평균"],
     markers=True,
-    labels={"dt": "날짜", "일별전체관객수": "전체 관객수 (명)"},
-    title=f"일별 전체 관객수 변화 ({start_date} ~ {end_date})",
+    labels={"dt": "날짜", "value": "관객수 (명)", "variable": "구분"},
+    title=f"일별 전체 관객수 및 7일 이동 평균 추이 ({start_date} ~ {end_date})",
 )
-fig4.update_traces(hovertemplate="날짜: %{x|%Y-%m-%d}<br>관객수: %{y:,}명")
+
+fig4.for_each_trace(
+    lambda t: t.update(
+        name="일별 관객수" if t.name == "일별전체관객수" else "7일 이동 평균"
+    )
+)
+fig4.update_traces(hovertemplate="날짜: %{x|%Y-%m-%d}<br>관객수: %{y:,.0f}명")
+fig4.update_layout(
+    height=420,
+    xaxis_title="기준일자",
+    yaxis_title="관객수 (명)",
+    legend_title="구분",
+)
+
 st.plotly_chart(fig4, use_container_width=True)
 
 st.divider()
@@ -363,15 +403,12 @@ st.divider()
 # ------------------------------------------
 st.markdown("### 🗓️ 6번: 캘린더 히트맵 (월·주차별 × 요일별 관객수)")
 
-# 요일 가공 (월요일=0, 일요일=6)
 days_ko = ["월", "화", "수", "목", "금", "토", "일"]
 daily_summary["day_of_week_num"] = daily_summary["dt"].dt.dayofweek
 daily_summary["요일"] = daily_summary["day_of_week_num"].map(lambda x: days_ko[x])
 
-# 해당 월에서의 주차 계산 함수 (월 1일 기준 주차)
 def get_month_week(dt):
     first_day = dt.replace(day=1)
-    # 1일의 요일 위치를 감안하여 주차 계산
     dom = dt.day
     adjusted_dom = dom + first_day.weekday()
     return f"{dt.strftime('%Y-%m')} {(adjusted_dom - 1) // 7 + 1}주차"
@@ -379,7 +416,6 @@ def get_month_week(dt):
 daily_summary["월_주차"] = daily_summary["dt"].apply(get_month_week)
 daily_summary["date_str"] = daily_summary["dt"].dt.strftime("%Y-%m-%d")
 
-# 요일 순서를 월~일로 정렬하기 위한 피벗 테이블 생성
 pivot_df = daily_summary.pivot(
     index="월_주차", columns="day_of_week_num", values="일별전체관객수"
 )
@@ -387,16 +423,13 @@ pivot_dates = daily_summary.pivot(
     index="월_주차", columns="day_of_week_num", values="date_str"
 )
 
-# 존재하는 요일 컬럼만 매핑
 pivot_df.columns = [days_ko[c] for c in pivot_df.columns]
 pivot_dates.columns = [days_ko[c] for c in pivot_dates.columns]
 
-# 월~일 요일 컬럼 순서 고정
 col_order = [d for d in days_ko if d in pivot_df.columns]
 pivot_df = pivot_df[col_order]
 pivot_dates = pivot_dates[col_order]
 
-# 마우스 오버(Hover) 시 나타날 커스텀 텍스트 생성 (YYYY-MM-DD + 관객수)
 hover_text = []
 for i in range(len(pivot_df)):
     row_text = []
@@ -409,17 +442,15 @@ for i in range(len(pivot_df)):
             row_text.append(f"날짜: {d_str}<br>관객수: {int(val):,}명")
     hover_text.append(row_text)
 
-# Plotly imshow 기반 히트맵 생성
 fig6 = px.imshow(
     pivot_df,
     labels=dict(x="요일", y="월 - 주차", color="관객수"),
     x=pivot_df.columns,
     y=pivot_df.index,
-    color_continuous_scale="Reds",  # 관객수가 많을수록 진한 빨간색
+    color_continuous_scale="Reds",
     aspect="auto",
 )
 
-# Hover 템플릿 적용 (yyyy-mm-dd 표시)
 fig6.update_traces(
     hoverongaps=False,
     hovertemplate="%{customdata}<extra></extra>",
