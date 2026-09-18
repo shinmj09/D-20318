@@ -14,8 +14,13 @@ def load_data():
     url = "https://raw.githubusercontent.com/greatsong/modudata/main/data/kobis_movies.csv"
     df = pd.read_csv(url)
     
-    # 장르 전처리: Pandas str 메서드를 사용하여 첫 번째 장르만 안전하게 추출
+    # 장르 전처리: 첫 번째 장르만 추출
     df['genre'] = df['genre'].astype(str).str.split('|').str[0]
+    
+    # 트리맵 중복 에러 방지: movieCd/movieNm 기준 중복 제거 및 결측치 처리
+    df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'total_audi'])
+    df = df.drop_duplicates(subset=['movieCd'])
+    
     return df
 
 df = load_data()
@@ -55,26 +60,18 @@ st.divider()
 # 두 번째 구역: 장르 및 영화별 총 관객수 분포 (트리맵)
 st.subheader("2. 장르별·영화별 총 관객수 (트리맵)")
 
-# Plotly 트리맵 그래프 생성 (중복 방지를 위해 movieCd를 path에 사용)
+# Plotly 트리맵 그래프 생성 (장르 -> 영화명 계층 구조)
 fig2 = px.treemap(
     df,
-    path=[px.Constant("전체"), 'genre', 'movieCd'],
+    path=[px.Constant("전체 영화"), 'genre', 'movieNm'],
     values='total_audi',
-    hover_data={'movieNm': True, 'movieCd': False},
     title="장르 및 영화별 총 관객수 트리맵"
 )
 
-# 라벨을 영화명(movieNm)으로 변경하고 마우스오버 시 영화명과 총 관객수 표시
+# 마우스오버 시 영화명과 총 관객수 표시 설정
 fig2.update_traces(
-    textinfo='label',
-    hovertemplate="<b>%{customdata[0]}</b><br>총 관객수: %{value:,}명<extra></extra>"
+    hovertemplate="<b>%{label}</b><br>총 관객수: %{value:,}명<extra></extra>"
 )
-
-# 트리맵 라벨 텍스트 변경 (movieCd 대신 movieNm 표시)
-fig2.data[0].labels = [
-    df.set_index('movieCd')['movieNm'].to_dict().get(label, label)
-    for label in fig2.data[0].labels
-]
 
 # 그래프 출력
 st.plotly_chart(fig2, use_container_width=True)
