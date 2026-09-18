@@ -78,3 +78,35 @@ st.plotly_chart(fig2, use_container_width=True)
 
 # 설명 구역
 st.info("💡 **이 그래프로 알 수 있는 것:** 장르 전체의 총 관객 규모뿐만 아니라 해당 장르 내에서 어떤 영화가 흥행을 주도했는지 직관적으로 비교할 수 있습니다.")
+
+st.divider()
+
+# 세 번째 구역: 총 관객수 분포 (히스토그램)
+st.subheader("3. 총 관객수 분포")
+
+# Plotly 히스토그램 생성
+fig3 = px.histogram(
+    df,
+    x='total_audi',
+    nbins=20,
+    labels={'total_audi': '총 관객수 (명)'},
+    title="영화별 총 관객수 분포 (히스토그램)"
+)
+
+fig3.update_traces(
+    hovertemplate="관객수 구간: %{x}<br>영화 수: %{y}편<extra></extra>"
+)
+
+# 그래프 출력
+st.plotly_chart(fig3, use_container_width=True)
+
+# 가장 관객 수가 많은 영화 정보 추출
+top_movie = df.loc[df['total_audi'].idxmax()]
+top_movie_name = top_movie['movieNm']
+top_movie_audi = top_movie['total_audi']
+
+# 설명 구역 (분포 밀집 구간 및 최다 관객 영화 표기)
+st.info(
+    f"💡 **이 그래프로 알 수 있는 것:** 대부분의 영화는 관객수 하위 구간에 집중되어 분포하고 있으며, "
+    f"가장 많은 관객을 동원한 영화는 **'{top_movie_name}'** (총 관객수: {top_movie_audi:,}명)입니다."
+)
