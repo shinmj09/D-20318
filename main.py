@@ -30,7 +30,7 @@ genre_counts = df['genre'].value_counts().reset_index()
 genre_counts.columns = ['genre', 'count']
 
 # Plotly 도넛 그래프 생성
-fig = px.pie(
+fig1 = px.pie(
     genre_counts,
     names='genre',
     values='count',
@@ -39,13 +39,37 @@ fig = px.pie(
 )
 
 # 마우스오버 시 편수(value)와 비율(percent) 표시 설정
-fig.update_traces(
+fig1.update_traces(
     textinfo='percent+label',
     hovertemplate="<b>장르: %{label}</b><br>편수: %{value}편<br>비율: %{percent}<extra></extra>"
 )
 
 # 그래프 출력
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig1, use_container_width=True)
 
 # 설명 구역
 st.info("💡 **이 그래프로 알 수 있는 것:** 특정 장르가 전체 박스오피스 상위권 영화 중 가장 큰 비중을 차지하고 있으며, 장르별 편수 편차를 한눈에 비교할 수 있습니다.")
+
+st.divider()
+
+# 두 번째 구역: 장르 및 영화별 총 관객수 분포 (트리맵)
+st.subheader("2. 장르별·영화별 총 관객수 (트리맵)")
+
+# Plotly 트리맵 그래프 생성 (계층 구조: 장르 -> 영화명, 크기: 총 관객수)
+fig2 = px.treemap(
+    df,
+    path=[px.Constant("전체"), 'genre', 'movieNm'],
+    values='total_audi',
+    title="장르 및 영화별 총 관객수 트리맵"
+)
+
+# 마우스오버 시 영화명과 총 관객수가 깔끔하게 표시되도록 설정
+fig2.update_traces(
+    hovertemplate="<b>%{label}</b><br>총 관객수: %{value:,}명<extra></extra>"
+)
+
+# 그래프 출력
+st.plotly_chart(fig2, use_container_width=True)
+
+# 설명 구역
+st.info("💡 **이 그래프로 알 수 있는 것:** 장르 전체의 총 관객 규모뿐만 아니라 해당 장르 내에서 어떤 영화가 흥행을 주도했는지 직관적으로 비교할 수 있습니다.")
