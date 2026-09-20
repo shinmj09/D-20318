@@ -17,7 +17,7 @@ def load_data():
     # 장르 전처리: 첫 번째 장르만 추출
     df['genre'] = df['genre'].astype(str).str.split('|').str[0]
     
-    # 트리맵 중복 에러 방지: movieCd/movieNm 기준 중복 제거 및 결측치 처리
+    # 중복 에러 방지 및 결측치 처리
     df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'total_audi', 'first_scrn'])
     df = df.drop_duplicates(subset=['movieCd'])
     
@@ -141,3 +141,39 @@ st.plotly_chart(fig4, use_container_width=True)
 
 # 설명 구역
 st.info("💡 **이 그래프로 알 수 있는 것:** 개봉일 스크린수가 많을수록 총 관객수도 대체로 증가하는 양의 상관관계를 보이나, 일부 영화는 스크린수에 비해 높은 관객 동원력을 기록했음을 알 수 있습니다.")
+
+st.divider()
+
+# 다섯 번째 구역: 영화 수 10편 이상 장르의 총 관객수 분포 (박스플롯)
+st.subheader("5. 주요 장르별 총 관객수 분포 (박스플롯)")
+
+# 10편 이상인 장르 필터링
+genre_counts_series = df['genre'].value_counts()
+top_genres = genre_counts_series[genre_counts_series >= 10].index
+df_filtered = df[df['genre'].isin(top_genres)]
+
+# Plotly 박스플롯 생성 (points='outliers'로 이상치 점 표시, hover_name 지정)
+fig5 = px.box(
+    df_filtered,
+    x='genre',
+    y='total_audi',
+    color='genre',
+    hover_name='movieNm',
+    points='outliers',
+    labels={
+        'genre': '장르',
+        'total_audi': '총 관객수 (명)'
+    },
+    title="영화 수 10편 이상 장르의 총 관객수 박스플롯"
+)
+
+# 마우스 오버 시 영화명, 장르, 총 관객수가 보이도록 설정
+fig5.update_traces(
+    hovertemplate="<b>%{hovertext}</b><br>장르: %{x}<br>총 관객수: %{y:,}명<extra></extra>"
+)
+
+# 그래프 출력
+st.plotly_chart(fig5, use_container_width=True)
+
+# 설명 구역
+st.info("💡 **이 그래프로 알 수 있는 것:** 영화 편수가 10편 이상인 장르 간의 중간 관객수 분포 차이를 비교할 수 있으며, 박스 상단 밖으로 튀어나온 이상치 점을 통해 해당 장르 내의 기록적인 대흥행작을 한눈에 파악할 수 있습니다.")
