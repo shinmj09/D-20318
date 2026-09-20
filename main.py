@@ -18,7 +18,7 @@ def load_data():
     df['genre'] = df['genre'].astype(str).str.split('|').str[0]
     
     # 중복 에러 방지 및 결측치 처리
-    df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'total_audi', 'first_scrn', 'first_week_audi'])
+    df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'nation', 'total_audi', 'first_scrn', 'first_week_audi'])
     df = df.drop_duplicates(subset=['movieCd'])
     
     return df
@@ -211,3 +211,26 @@ st.plotly_chart(fig6, use_container_width=True)
 
 # 설명 구역
 st.info("💡 **이 그래프로 알 수 있는 것:** 개봉일 스크린수와 총 관객수뿐만 아니라 점의 크기(첫 주 관객수)를 통해 초반 흥행 기세가 최종 총 관객수 형성에 얼마나 큰 영향을 주었는지 3가지 차원으로 함께 비교해 볼 수 있습니다.")
+
+st.divider()
+
+# 일곱 번째 구역: 제작 국가별 및 장르별 영화 편수 (선버스트 차트)
+st.subheader("7. 제작 국가 및 장르별 영화 편수 (선버스트)")
+
+# Plotly 선버스트 생성 (계층 구조: 국가 -> 장르, 칸 크기: 영화 편수)
+fig7 = px.sunburst(
+    df,
+    path=['nation', 'genre'],
+    title="제작 국가별 및 장르별 영화 편수 비율"
+)
+
+# 마우스오버 시 구분명, 영화 편수, 비율 표시 설정
+fig7.update_traces(
+    hovertemplate="<b>%{label}</b><br>영화 편수: %{value}편<br>비율: %{percentParent:.1%}<extra></extra>"
+)
+
+# 그래프 출력
+st.plotly_chart(fig7, use_container_width=True)
+
+# 설명 구역
+st.info("💡 **이 그래프로 알 수 있는 것:** 주요 제작 국가별로 어떤 장르의 영화가 주로 제작 및 수입되었는지 계층 구조와 비율을 한눈에 파악할 수 있습니다.")
