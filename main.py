@@ -18,7 +18,7 @@ def load_data():
     df['genre'] = df['genre'].astype(str).str.split('|').str[0]
     
     # 트리맵 중복 에러 방지: movieCd/movieNm 기준 중복 제거 및 결측치 처리
-    df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'total_audi'])
+    df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'total_audi', 'first_scrn'])
     df = df.drop_duplicates(subset=['movieCd'])
     
     return df
@@ -110,3 +110,34 @@ st.info(
     f"💡 **이 그래프로 알 수 있는 것:** 대부분의 영화는 관객수 하위 구간에 집중되어 분포하고 있으며, "
     f"가장 많은 관객을 동원한 영화는 **'{top_movie_name}'** (총 관객수: {top_movie_audi:,}명)입니다."
 )
+
+st.divider()
+
+# 네 번째 구역: 개봉일 스크린수와 총 관객수의 관계 (산점도)
+st.subheader("4. 개봉일 스크린수와 총 관객수의 관계")
+
+# Plotly 산점도 생성 (장르별 색상 구분, hover_name에 영화명 지정)
+fig4 = px.scatter(
+    df,
+    x='first_scrn',
+    y='total_audi',
+    color='genre',
+    hover_name='movieNm',
+    labels={
+        'first_scrn': '개봉일 스크린수 (개)',
+        'total_audi': '총 관객수 (명)',
+        'genre': '장르'
+    },
+    title="개봉일 스크린수 vs 총 관객수 산점도"
+)
+
+# 마우스오버 표시 형식 설정
+fig4.update_traces(
+    hovertemplate="<b>%{hovertext}</b><br>개봉일 스크린수: %{x:,}개<br>총 관객수: %{y:,}명<extra></extra>"
+)
+
+# 그래프 출력
+st.plotly_chart(fig4, use_container_width=True)
+
+# 설명 구역
+st.info("💡 **이 그래프로 알 수 있는 것:** 개봉일 스크린수가 많을수록 총 관객수도 대체로 증가하는 양의 상관관계를 보이나, 일부 영화는 스크린수에 비해 높은 관객 동원력을 기록했음을 알 수 있습니다.")
