@@ -18,7 +18,7 @@ def load_data():
     df['genre'] = df['genre'].astype(str).str.split('|').str[0]
     
     # 중복 에러 방지 및 결측치 처리
-    df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'total_audi', 'first_scrn'])
+    df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'total_audi', 'first_scrn', 'first_week_audi'])
     df = df.drop_duplicates(subset=['movieCd'])
     
     return df
@@ -177,3 +177,37 @@ st.plotly_chart(fig5, use_container_width=True)
 
 # 설명 구역
 st.info("💡 **이 그래프로 알 수 있는 것:** 영화 편수가 10편 이상인 장르 간의 중간 관객수 분포 차이를 비교할 수 있으며, 박스 상단 밖으로 튀어나온 이상치 점을 통해 해당 장르 내의 기록적인 대흥행작을 한눈에 파악할 수 있습니다.")
+
+st.divider()
+
+# 여섯 번째 구역: 개봉일 스크린수, 총 관객수, 첫 주 관객수의 관계 (버블 차트)
+st.subheader("6. 개봉일 스크린수·총 관객수·첫 주 관객수 관계 (버블 차트)")
+
+# Plotly 버블 차트 생성 (size에 first_week_audi 지정)
+fig6 = px.scatter(
+    df,
+    x='first_scrn',
+    y='total_audi',
+    size='first_week_audi',
+    color='genre',
+    hover_name='movieNm',
+    size_max=50,
+    labels={
+        'first_scrn': '개봉일 스크린수 (개)',
+        'total_audi': '총 관객수 (명)',
+        'first_week_audi': '첫 주 관객수 (명)',
+        'genre': '장르'
+    },
+    title="개봉일 스크린수 vs 총 관객수 (점 크기: 첫 주 관객수)"
+)
+
+# 마우스오버 표시 형식 설정
+fig6.update_traces(
+    hovertemplate="<b>%{hovertext}</b><br>개봉일 스크린수: %{x:,}개<br>총 관객수: %{y:,}명<br>첫 주 관객수: %{marker.size:,}명<extra></extra>"
+)
+
+# 그래프 출력
+st.plotly_chart(fig6, use_container_width=True)
+
+# 설명 구역
+st.info("💡 **이 그래프로 알 수 있는 것:** 개봉일 스크린수와 총 관객수뿐만 아니라 점의 크기(첫 주 관객수)를 통해 초반 흥행 기세가 최종 총 관객수 형성에 얼마나 큰 영향을 주었는지 3가지 차원으로 함께 비교해 볼 수 있습니다.")
