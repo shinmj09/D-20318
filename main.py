@@ -18,7 +18,7 @@ def load_data():
     df['genre'] = df['genre'].astype(str).str.split('|').str[0]
     
     # 중복 에러 방지 및 결측치 처리
-    df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'nation', 'total_audi', 'first_scrn', 'first_week_audi'])
+    df = df.dropna(subset=['movieCd', 'movieNm', 'genre', 'nation', 'total_audi', 'first_scrn', 'first_week_audi', 'days_in_top10'])
     df = df.drop_duplicates(subset=['movieCd'])
     
     return df
@@ -234,3 +234,34 @@ st.plotly_chart(fig7, use_container_width=True)
 
 # 설명 구역
 st.info("💡 **이 그래프로 알 수 있는 것:** 주요 제작 국가별로 어떤 장르의 영화가 주로 제작 및 수입되었는지 계층 구조와 비율을 한눈에 파악할 수 있습니다.")
+
+st.divider()
+
+# 여덟 번째 구역: 10위권 머문 날수와 총 관객수의 관계 (산점도)
+st.subheader("8. 10위권 머문 날수와 총 관객수의 관계")
+
+# Plotly 산점도 생성
+fig8 = px.scatter(
+    df,
+    x='days_in_top10',
+    y='total_audi',
+    color='genre',
+    hover_name='movieNm',
+    labels={
+        'days_in_top10': '10위권에 머문 날수 (일)',
+        'total_audi': '총 관객수 (명)',
+        'genre': '장르'
+    },
+    title="10위권 머문 날수 vs 총 관객수 산점도"
+)
+
+# 마우스오버 표시 형식 설정
+fig8.update_traces(
+    hovertemplate="<b>%{hovertext}</b><br>10위권 머문 날수: %{x}일<br>총 관객수: %{y:,}명<extra></extra>"
+)
+
+# 그래프 출력
+st.plotly_chart(fig8, use_container_width=True)
+
+# 설명 구역
+st.info("💡 **이 그래프로 알 수 있는 것:** 10위권 순위에 오랫동안 머문 영화일수록 총 관객수가 비례해서 증가하는 강한 양의 상관관계를 보여주어, 장기 흥행 여부가 최종 흥행 성패를 가르는 핵심 요소임을 알 수 있습니다.")
