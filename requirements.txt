@@ -1,3 +1,7 @@
 streamlit
 pandas
+numpys
+cikit-learn
+statsmodels
+scipy
 plotly
