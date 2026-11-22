@@ -1,7 +1,5 @@
 streamlit
 pandas
-numpys
-cikit-learn
-statsmodels
-scipy
+numpy
+scikit-learn
 plotly
