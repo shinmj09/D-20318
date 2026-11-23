@@ -240,4 +240,4 @@ with tab3:
 - **3단계 (로그 변환)**: `carat`, `price` 자연로그 변환(`log_carat`, `log_price`)으로 비선형 분포 선형화 및 이분산성 완화
 - **4단계 (범주형 인코딩)**: `cut`, `color`, `clarity` 원-핫 인코딩(`drop_first=True`, 17개 더미 생성)으로 기준 등급 대비 효과 정량화
 - **5단계 (층화 분할)**: `log_price` 분위수 기준 80:20 층화 분할(`train.csv` / `test.csv`)로 고가 구간 분포 균형 유지
-"""
+""")
